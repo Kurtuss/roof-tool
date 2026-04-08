@@ -85,8 +85,14 @@ export async function POST(req: NextRequest, { params }: Params) {
   }
 
   // ── OSM footprint path ──────────────────────────────────────────
-  let lat = row.lat;
-  let lng = row.lng;
+  // Accept lat/lng override from "Wrong House" pin correction
+  let lat = body.lat ?? row.lat;
+  let lng = body.lng ?? row.lng;
+
+  // If user provided corrected coordinates, update client record
+  if (body.lat != null && body.lng != null) {
+    db.prepare("UPDATE clients SET lat = ?, lng = ? WHERE id = ?").run(body.lat, body.lng, row.cid);
+  }
 
   // Geocode if needed
   if (!lat || !lng) {

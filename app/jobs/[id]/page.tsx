@@ -7,6 +7,8 @@ import {
   Ruler, TrendingUp, Triangle, Minus, AlertTriangle,
   Satellite, Hexagon, Download
 } from "lucide-react";
+import SatellitePreview from "@/components/SatellitePreview";
+import LocationConfirm from "@/components/LocationConfirm";
 import {
   Job, Measurement, Quote, ServiceType, SatelliteEstimate,
   SERVICE_LABELS, PITCH_LABELS, PitchBracket
@@ -56,6 +58,9 @@ export default function JobDetailPage() {
   const [selectedServices, setSelectedServices] = useState<Set<ServiceType>>(new Set(["reroof"]));
   const [runningSat, setRunningSat]             = useState(false);
   const [satError, setSatError]                 = useState("");
+  const [showPreview, setShowPreview]           = useState(true);
+  const [showPinCorrection, setShowPinCorrection] = useState(false);
+  const [satConfirmed, setSatConfirmed]         = useState(false);
 
   const load = useCallback(() => {
     fetch(`/api/jobs/${id}`)
@@ -66,13 +71,21 @@ export default function JobDetailPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  const runSatelliteEstimate = async () => {
+  const runSatelliteEstimate = async (overrideLat?: number, overrideLng?: number) => {
     setRunningSat(true);
     setSatError("");
-    const res  = await fetch(`/api/jobs/${id}/satellite`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}) });
+    setSatConfirmed(false);
+    setShowPinCorrection(false);
+    const body: Record<string, unknown> = {};
+    if (overrideLat != null && overrideLng != null) {
+      body.lat = overrideLat;
+      body.lng = overrideLng;
+    }
+    const res  = await fetch(`/api/jobs/${id}/satellite`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     const json = await res.json();
     setRunningSat(false);
     if (!json.ok) { setSatError(json.error ?? "Satellite estimate failed"); return; }
+    setShowPreview(true);
     load();
   };
 
@@ -144,7 +157,7 @@ export default function JobDetailPage() {
             </div>
           </div>
           {job.address && (
-            <button onClick={runSatelliteEstimate} disabled={runningSat} className="btn-secondary">
+            <button onClick={() => runSatelliteEstimate()} disabled={runningSat} className="btn-secondary">
               {runningSat
                 ? <><Loader2 size={15} className="animate-spin"/> Estimating...</>
                 : <><Satellite size={15}/> {hasSatellite ? "Re-run" : "Get"} Estimate</>}
@@ -159,17 +172,52 @@ export default function JobDetailPage() {
         )}
 
         {satellite_estimate ? (
-          <div className="grid grid-cols-3 gap-4">
-            {[
-              { label: "Footprint", value: `${satellite_estimate.footprint_sqft.toLocaleString()} sq ft` },
-              { label: "Roof Area", value: `${satellite_estimate.roof_sqft.toLocaleString()} sq ft` },
-              { label: "Perimeter", value: `${satellite_estimate.eave_length_ft.toLocaleString()} lin ft` },
-            ].map(({ label, value }) => (
-              <div key={label} className="text-center p-4 rounded-xl bg-brand-50/50 border border-brand-100/50">
-                <p className="text-xs text-brand-600/60 mb-1">{label}</p>
-                <p className="font-bold text-brand-900">{value}</p>
+          <div className="space-y-4">
+            <div className="grid grid-cols-3 gap-4">
+              {[
+                { label: "Footprint", value: `${satellite_estimate.footprint_sqft.toLocaleString()} sq ft` },
+                { label: "Roof Area", value: `${satellite_estimate.roof_sqft.toLocaleString()} sq ft` },
+                { label: "Perimeter", value: `${satellite_estimate.eave_length_ft.toLocaleString()} lin ft` },
+              ].map(({ label, value }) => (
+                <div key={label} className="text-center p-4 rounded-xl bg-brand-50/50 border border-brand-100/50">
+                  <p className="text-xs text-brand-600/60 mb-1">{label}</p>
+                  <p className="font-bold text-brand-900">{value}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Satellite Preview — confirm or reject building */}
+            {showPreview && !satConfirmed && !showPinCorrection && satellite_estimate.lat && satellite_estimate.lng && (
+              <SatellitePreview
+                lat={satellite_estimate.lat}
+                lng={satellite_estimate.lng}
+                polygon={satellite_estimate.polygon_json ? JSON.parse(satellite_estimate.polygon_json) : undefined}
+                onConfirm={() => { setSatConfirmed(true); setShowPreview(false); }}
+                onReject={() => { setShowPreview(false); setShowPinCorrection(true); }}
+              />
+            )}
+
+            {/* Confirmed badge */}
+            {satConfirmed && (
+              <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-50/60 border border-emerald-200/50 text-xs text-emerald-700">
+                <span className="font-semibold">Building confirmed.</span>
+                <button onClick={() => { setShowPreview(true); setSatConfirmed(false); }} className="underline ml-auto">Review again</button>
               </div>
-            ))}
+            )}
+
+            {/* Pin correction — wrong house flow */}
+            {showPinCorrection && satellite_estimate.lat && satellite_estimate.lng && (
+              <LocationConfirm
+                lat={satellite_estimate.lat}
+                lng={satellite_estimate.lng}
+                title="Select Correct House"
+                subtitle="Click on the correct house to place the pin, then confirm."
+                confirmLabel="Re-run Estimate Here"
+                rejectLabel="Cancel"
+                onConfirm={(newLat, newLng) => runSatelliteEstimate(newLat, newLng)}
+                onReject={() => { setShowPinCorrection(false); setShowPreview(true); }}
+              />
+            )}
           </div>
         ) : (
           <div className="text-center py-6">

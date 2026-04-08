@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle, AlertCircle, Loader2, MapPin, User, FileText, Hexagon, Satellite } from "lucide-react";
+import LocationConfirm from "@/components/LocationConfirm";
 
-type GeoStatus = "idle" | "geocoding" | "found" | "not_found";
+type GeoStatus = "idle" | "geocoding" | "found" | "not_found" | "confirmed";
 
 export default function NewJobPage() {
   const router = useRouter();
@@ -18,18 +19,35 @@ export default function NewJobPage() {
   const [error, setError]           = useState("");
   const [geoStatus, setGeoStatus]   = useState<GeoStatus>("idle");
   const [geoDisplay, setGeoDisplay] = useState("");
+  const [geoLat, setGeoLat]         = useState<number | null>(null);
+  const [geoLng, setGeoLng]         = useState<number | null>(null);
+  const [confirmedLat, setConfirmedLat] = useState<number | null>(null);
+  const [confirmedLng, setConfirmedLng] = useState<number | null>(null);
+  const [showConfirmMap, setShowConfirmMap] = useState(false);
 
   const geocodeCheck = async () => {
     if (!address.trim()) return;
     setGeoStatus("geocoding");
+    setConfirmedLat(null);
+    setConfirmedLng(null);
     const res = await fetch(`/api/geocode?address=${encodeURIComponent(address)}`);
     const data = await res.json();
     if (data.found) {
       setGeoStatus("found");
       setGeoDisplay(data.display_name);
+      setGeoLat(data.lat);
+      setGeoLng(data.lng);
+      setShowConfirmMap(true);
     } else {
       setGeoStatus("not_found");
     }
+  };
+
+  const handleLocationConfirm = (lat: number, lng: number) => {
+    setConfirmedLat(lat);
+    setConfirmedLng(lng);
+    setGeoStatus("confirmed");
+    setShowConfirmMap(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -40,7 +58,16 @@ export default function NewJobPage() {
     const res = await fetch("/api/jobs", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ clientName, address, phone, email, notes }),
+      body: JSON.stringify({
+        clientName,
+        address,
+        phone,
+        email,
+        notes,
+        ...(confirmedLat != null && confirmedLng != null
+          ? { lat: confirmedLat, lng: confirmedLng }
+          : {}),
+      }),
     });
 
     const data = await res.json();
@@ -105,10 +132,10 @@ export default function NewJobPage() {
                 Verify
               </button>
             </div>
-            {geoStatus === "found" && (
+            {(geoStatus === "found" || geoStatus === "confirmed") && (
               <p className="mt-2 text-sm text-emerald-600 flex items-center gap-1.5">
                 <CheckCircle size={14} />
-                Verified: <span className="text-brand-600/60 truncate max-w-sm">{geoDisplay}</span>
+                {geoStatus === "confirmed" ? "Location confirmed" : "Verified"}: <span className="text-brand-600/60 truncate max-w-sm">{geoDisplay}</span>
               </p>
             )}
             {geoStatus === "not_found" && (
@@ -131,6 +158,27 @@ export default function NewJobPage() {
           </div>
         </div>
 
+        {/* Location Confirmation Map */}
+        {showConfirmMap && geoLat != null && geoLng != null && (
+          <div className="card p-6">
+            <LocationConfirm
+              lat={geoLat}
+              lng={geoLng}
+              title="Confirm House Location"
+              subtitle="Is the pin on the correct house? Click the map to move it if needed."
+              confirmLabel="Yes, This is Correct"
+              rejectLabel="Skip Confirmation"
+              onConfirm={handleLocationConfirm}
+              onReject={() => {
+                setShowConfirmMap(false);
+                setConfirmedLat(geoLat);
+                setConfirmedLng(geoLng);
+                setGeoStatus("confirmed");
+              }}
+            />
+          </div>
+        )}
+
         {/* Notes */}
         <div className="card p-6">
           <div className="flex items-center gap-2 mb-4">
@@ -152,11 +200,13 @@ export default function NewJobPage() {
           </div>
         )}
 
-        {address.trim() && geoStatus === "found" && (
+        {address.trim() && (geoStatus === "found" || geoStatus === "confirmed") && (
           <div className="card border-brand-200/50 bg-brand-50/50 p-4 flex items-center gap-3">
             <Satellite size={16} className="text-brand-500" />
             <p className="text-sm text-brand-700">
-              Satellite roof estimate will run automatically when you create this job.
+              {geoStatus === "confirmed"
+                ? "Location confirmed. Satellite roof estimate will run on the pinned location."
+                : "Confirm location above, then satellite estimate will run automatically."}
             </p>
           </div>
         )}
