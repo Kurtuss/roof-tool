@@ -2,7 +2,7 @@ FROM node:20-alpine
 
 # Python + reportlab + Pillow for PDF generation
 RUN apk add --no-cache python3 py3-pip py3-setuptools && \
-    pip3 install --break-system-packages reportlab Pillow
+    pip3 install --break-system-packages reportlab Pillow requests
 
 WORKDIR /app
 
