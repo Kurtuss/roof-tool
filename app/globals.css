@@ -1,0 +1,139 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-hex-bg text-gray-800 antialiased;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='49' viewBox='0 0 28 49'%3E%3Cg fill-rule='evenodd'%3E%3Cg fill='%230ea5e9' fill-opacity='0.03'%3E%3Cpath d='M13.99 9.25l13 7.5v15l-13 7.5L1 31.75v-15l12.99-7.5zM3 17.9v12.7l10.99 6.34 11-6.35V17.9l-11-6.34L3 17.9zM0 15l12.98-7.5V0h-2v6.35L0 12.69v2.3zm0 18.5L12.98 41v8h-2v-6.85L0 35.81v-2.3zM15 0v7.5L27.99 15H28v-2.31h-.01L17 6.35V0h-2zm0 49v-8l12.99-7.5H28v2.31h-.01L17 42.15V49h-2z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(14, 165, 233, 0.2);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(14, 165, 233, 0.35);
+  }
+}
+
+@layer components {
+  /* ── Glass card ─────────────────────────────── */
+  .card {
+    @apply bg-white/85 backdrop-blur-sm rounded-2xl border border-brand-100/50
+           shadow-hex-card transition-shadow duration-300;
+  }
+  .card:hover {
+    @apply shadow-hex-hover;
+  }
+
+  /* ── Buttons ────────────────────────────────── */
+  .btn-primary {
+    @apply inline-flex items-center gap-2 px-5 py-2.5 rounded-xl
+           bg-gradient-to-r from-brand-500 to-brand-600
+           text-white font-semibold text-sm
+           hover:from-brand-600 hover:to-brand-700
+           shadow-md hover:shadow-lg hover:shadow-brand-500/25
+           transition-all duration-200
+           disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-md;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center gap-2 px-5 py-2.5 rounded-xl
+           border border-brand-200 bg-white/80 backdrop-blur-sm
+           text-brand-700 font-medium text-sm
+           hover:bg-brand-50 hover:border-brand-300
+           transition-all duration-200;
+  }
+
+  /* ── Inputs ─────────────────────────────────── */
+  .input {
+    @apply w-full rounded-xl border border-brand-200/60 bg-white/90
+           px-4 py-2.5 text-sm
+           focus:outline-none focus:ring-2 focus:ring-brand-400/40 focus:border-brand-400
+           placeholder:text-gray-400
+           transition-all duration-200;
+  }
+  .label {
+    @apply block text-sm font-medium text-brand-800 mb-1.5;
+  }
+
+  /* ── Hexagon decorative shape ───────────────── */
+  .hex-shape {
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  }
+
+  /* ── Stat card with hex accent ──────────────── */
+  .stat-card {
+    @apply card p-5 relative overflow-hidden;
+  }
+  .stat-card::before {
+    content: "";
+    position: absolute;
+    top: -20px;
+    right: -20px;
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, rgba(14, 165, 233, 0.08), rgba(14, 165, 233, 0.02));
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  }
+
+  /* ── Sidebar nav link ───────────────────────── */
+  .nav-link {
+    @apply flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm
+           text-brand-200/80 font-medium
+           hover:bg-white/10 hover:text-white
+           transition-all duration-200;
+  }
+  .nav-link.active {
+    @apply bg-white/15 text-white shadow-inner;
+  }
+
+  /* ── Glow ring ──────────────────────────────── */
+  .glow-ring {
+    @apply ring-2 ring-brand-400/30 ring-offset-2 ring-offset-transparent;
+  }
+
+  /* ── Section header ─────────────────────────── */
+  .section-title {
+    @apply text-lg font-bold text-brand-900 tracking-tight;
+  }
+  .section-subtitle {
+    @apply text-sm text-brand-600/70 mt-0.5;
+  }
+
+  /* ── Hex icon container ─────────────────────── */
+  .hex-icon {
+    @apply w-10 h-10 flex items-center justify-center
+           bg-gradient-to-br from-brand-100 to-brand-200/50
+           text-brand-600;
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  }
+
+  /* ── Data metric display ────────────────────── */
+  .metric-card {
+    @apply flex items-start gap-3 p-4 rounded-xl
+           bg-gradient-to-br from-brand-50/80 to-white
+           border border-brand-100/40;
+  }
+}
+
+/* ── Print styles ─────────────────────────────── */
+@media print {
+  body {
+    background: white !important;
+    background-image: none !important;
+  }
+  .card {
+    background: white !important;
+    box-shadow: none !important;
+    border: 1px solid #e5e7eb !important;
+    backdrop-filter: none !important;
+  }
+}
