@@ -14,8 +14,7 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-# Persistent volume for SQLite
-VOLUME ["/data"]
+# Persistent volume for SQLite (configured in Railway UI)
 ENV DATABASE_PATH=/data/roof.db
 
 EXPOSE 3000
